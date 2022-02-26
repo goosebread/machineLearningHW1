@@ -65,7 +65,10 @@ tauResults[:,0] = taus
 #future improvement: these could be done in parallel
 for i in range(Ntaus):
     tau = taus[i]
-    Decisions = projSamples>tau
+    #Note that the "backwards" projection vector may be generated as a valid optimal solution
+    #for that case, this comparison can be manually switched to a > operator to account for the extra 
+    #negative sign
+    Decisions = projSamples<tau
 
     truePos = (Decisions==1) & (trueLabels==1)
     falsePos = (Decisions==1) & (trueLabels==0)
@@ -87,6 +90,7 @@ tauErrors = (tauResults[:,1] * totalPos + tauResults[:,2] * totalNeg)/N
 i_min = np.argmin(tauErrors)
 
 #Output select stats to console
+print("N = "+str(N))
 print("P(L=0) = "+str(totalNeg/N))
 print("Minimum P(error) = "+str(tauErrors[i_min]))
 print("Tau for min P(error) = "+str(taus[i_min]))

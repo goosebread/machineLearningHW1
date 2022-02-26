@@ -42,12 +42,19 @@ def runPartA(lossMatrix,title1,title2):
 
     #Risk vectors for each sample, 3xN matrix
     R = np.matmul(L,P)
+    
     #Make Decisions based on minimum risk
     Decisions = np.array([np.argmin(R, axis=0)])+1
+
+    #Estimate minimum expected risk for using 10k samples
+    minRisks = R.min(axis=0)
+    expectedMinRisk = np.average(minRisks)
+    print("Minimum Expected Risk = "+str(expectedMinRisk))
 
     #calculate confusion matrix (using sklearn library)
     trueLabels = np.load(open('Q2Classes.npy', 'rb')).T
     CM = confusion_matrix((trueLabels-1)[0], (Decisions-1)[0], normalize = 'true')
+    print("Confusion Matrix: ")
     print(CM)
 
     #Part 3 Visualizations

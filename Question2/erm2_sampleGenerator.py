@@ -5,7 +5,6 @@
 import numpy as np
 
 #provided data: 
-
 N = 10000 #number of Samples
 n=3        #number of dimensions
 p1 = 0.3 #class prior
@@ -14,7 +13,7 @@ p3 = 0.4 #class prior
 
 #make 4 random cov matrices    
 A1=np.random.rand(n,n)-0.5
-S1=np.matmul(A1,A1.T) #ERROR all the covariances will be positive - we can randomly symmetrically make some negative later
+S1=np.matmul(A1,A1.T) 
 A2=np.random.rand(n,n)-0.5
 S2=np.matmul(A2,A2.T)
 A3=np.random.rand(n,n)-0.5
@@ -22,7 +21,7 @@ S3=np.matmul(A3,A3.T)
 A4=np.random.rand(n,n)-0.5
 S4=np.matmul(A4,A4.T)
 
-#get average standard deviation WARNING IS THIS METHOD VALID????
+#get something on the order of the "average standard deviation"
 dist = 0
 for S in [S1,S2,S3,S4]:
     dist += np.sum(np.sqrt(np.diag(S)))
@@ -32,6 +31,9 @@ dist = dist/12
 
 #3d tetrahedron sample coords on unit sphere from https://en.wikipedia.org/wiki/Tetrahedron
 #new edge length is 2-3 times avg std deviation, old edge length is sqrt(8/9)
+
+#it might be more efficient to use the corners of a cube 
+#but I already wrote this code and it only gets run once anyways
 scale = (2+np.random.uniform()) * dist / np.sqrt(8/9) 
 m1 = scale * np.array([np.sqrt(8/9),0,-1/3])#row vector
 m2 = scale * np.array([-np.sqrt(2/9),np.sqrt(2/3),-1/3])
@@ -69,6 +71,3 @@ with open('Q2Classes.npy', 'wb') as f1:
 
 with open('Q2Samples.npy', 'wb') as f2:
     np.save(f2, samples)
-
-
-

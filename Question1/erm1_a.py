@@ -7,7 +7,7 @@ from scipy.stats import multivariate_normal
 
 N = 10000 #number of samples
 
-#distribution of labels are known
+#true distributions of labels are known
 m0 = np.array([-1,-1,-1,-1])
 C0 = np.array([[2,-0.5,0.3,0],
             [-0.5,1,-0.5,0],
@@ -68,6 +68,7 @@ gammaErrors = (gammaResults[:,1] * totalPos + gammaResults[:,2] * totalNeg)/N
 i_min = np.argmin(gammaErrors)
 
 #Output select stats to console
+print("N = "+str(N))
 print("P(L=0) = "+str(totalNeg/N))
 print("Minimum P(error) = "+str(gammaErrors[i_min]))
 print("Gamma for min P(error) = "+str(gammas[i_min]))
@@ -92,16 +93,13 @@ plt.show()
 with open('Q1_ROC1.npy', 'wb') as f1:
     np.save(f1, gammaResults[:,2:4])
 
-
-
-
-
-
-
-
-
-
-
+#plot gamma errors out of curiosity
+fig2,ax2 = plt.subplots()
+l2=ax2.semilogx(gammas, gammaErrors, color='tab:blue')
+ax2.set_xlabel('Gamma')
+ax2.set_ylabel('P(Error)')
+ax2.set_title('Gamma vs P(Error)')
+plt.show()
 
 #Check that scipy's mvn function matches expected definition
 """
@@ -117,14 +115,4 @@ A = -0.5 *np.matmul((x-m0),np.matmul(np.linalg.inv(C0),(x-m0).T))
 B = np.exp(A)
 C = np.sqrt(np.power(2*np.pi,4)*np.linalg.det(C0))
 print(B/C)
-"""
-
-#plot gamma errors out of curiosity
-"""
-fig2,ax2 = plt.subplots()
-l2=ax2.semilogx(gammas, gammaErrors, color='tab:blue')
-ax2.set_xlabel('Gamma')
-ax2.set_ylabel('Error')
-ax2.set_title('Gamma vs Error plot')
-plt.show()
 """

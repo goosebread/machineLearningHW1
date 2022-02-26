@@ -4,7 +4,6 @@
 import numpy as np
 
 #provided data: 
-
 N = 10000 #number of Samples
 p0 = 0.7 #class prior
 
@@ -25,7 +24,7 @@ C1 = np.array([[1,0.3,-0.2,0],
 A = np.random.rand(N,1)
 trueClassLabels = A>p0 # True/1 for Class 1, False/0 for Class 0
 
-#This generates double the data as a for-loop scheme but is more parallel
+#This generates double the data compared to a for-loop scheme but is more parallel
 x0 = np.random.multivariate_normal(m0, C0, N)
 x1 = np.random.multivariate_normal(m1, C1, N)
 
