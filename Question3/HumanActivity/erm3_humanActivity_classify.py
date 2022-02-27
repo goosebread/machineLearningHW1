@@ -1,5 +1,5 @@
 # Alex Yeh
-# Question 3 White Wine Quality Dataset
+# Question 3 Human Activity Recognition
 
 import pandas as pd
 import numpy as np
@@ -8,69 +8,55 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from scipy.stats import multivariate_normal
 from sklearn.metrics import confusion_matrix
-from plotHelpers import *
 
-NLabels = 11
-Labels = range(NLabels) #list of all labels
-NFeatures = 11
+trueLabels=torch.load('trueLabels.pt')
+samples=torch.load('samples.pt')
+Labels = [1,2,3,4,5,6]
 
-#hyperparameter alpha for regularization term
-alpha = 2.575e-5
+NLabels = len(Labels)
+NFeatures = 561
 
-df = pd.read_csv('data/winequality-white.csv',sep=';')
-FeatureNames = df.columns[:-1]
+alpha = 4.670e-6
 
-trueClassLabels = torch.tensor(df.loc[:,df.columns=='quality'].values)
-samples = torch.tensor(df.loc[:,df.columns!='quality'].values)
-
-#cols are features
-#rows are class labels
-#WARNING some class labels have no data
 means = torch.zeros([NLabels,NFeatures], dtype=torch.float64)
 covs = torch.zeros([NLabels,NFeatures,NFeatures], dtype=torch.float64)
 priors = torch.zeros([NLabels], dtype=torch.float64)
 
 for i in range(NLabels):
-    dataGivenClass = df[df['quality']==i].loc[:, df.columns!='quality']
-    if dataGivenClass.empty:
+    t = samples[trueLabels==Labels[i]]
+    if torch.numel(t)==0:
         continue #the prior probability will be estimated as 0
-    t = torch.tensor(dataGivenClass.values)
     means[i] = torch.mean(t,dim=0)
     covt = torch.cov(t.T)
     #regularization term
     l = alpha * torch.trace(covt)/torch.linalg.matrix_rank(covt)
-    covs[i] = covt + l*torch.eye(11)
+    covs[i] = covt + l*torch.eye(NFeatures)
     priors[i] = (t.size()[0])
 NSamples = int(torch.sum(priors).item())
 priors = priors/NSamples
-
-classPosteriors = torch.zeros([NLabels,NSamples], dtype=torch.float64)
+lnClassPosteriors = torch.zeros([NLabels,NSamples], dtype=torch.float64)
 
 #calculate class posteriors, ignoring common factor p(x)
 for i in range(NLabels):
     if priors[i]==0:
         continue #skip if the prior probability is 0
+
+    #multivariate gaussian. calling scipy function to give natural log of pdf value
     mvn = multivariate_normal(means[i],covs[i])
-    pxGivenLabel =mvn.pdf(samples)
-    pLabelGivenx = pxGivenLabel * priors[i].item() #/p(x) 
-    classPosteriors[i] = torch.from_numpy(pLabelGivenx)
+    pxGivenLabel =mvn.logpdf(samples)
+    pLabelGivenx = pxGivenLabel + np.log(priors[i].item()) #/p(x) 
+    lnClassPosteriors[i] = torch.from_numpy(pLabelGivenx)
 
-#loss matrix, minimize total error
-L = torch.ones([NLabels,NLabels], dtype=torch.float64) - torch.eye(NLabels)
-
-#calculate Risk Matrix for all samples (NDecisions x NSamples)
-#(NDecisions = NLabels)
-risks = torch.matmul(L,classPosteriors)
-Decisions = torch.argmin(risks,dim=0)
+#MAP classification rule
+Decisions = torch.argmax(lnClassPosteriors,dim=0)+1
+Errors = torch.flatten(trueLabels)!=torch.flatten(Decisions)
+pError = torch.sum(Errors).item()/NSamples 
+print("P(error) = "+str(pError))            
 
 #calculate confusion matrix (using sklearn library)
 #output matrix uses labels in sorted order
-CM = pd.DataFrame(confusion_matrix(torch.flatten(trueClassLabels), torch.flatten(Decisions), labels = Labels, normalize = 'true'))
-CM.to_csv("ConfusionMatrix_WhiteWine.csv",index=False) #save to file
-
-Errors = torch.flatten(trueClassLabels)!=torch.flatten(Decisions)
-pError = torch.sum(Errors).item()/NSamples 
-print("P(error) = "+str(pError))            
+CM = pd.DataFrame(confusion_matrix(torch.flatten(trueLabels), torch.flatten(Decisions), labels = Labels, normalize = 'true'))
+CM.to_csv("ConfusionMatrix_HumanActivity.csv",index=False) #save to file
 
 #PCA for graphing
 
@@ -79,7 +65,7 @@ print("P(error) = "+str(pError))
 
 smean = torch.mean(samples,dim=0)
 scov = torch.cov(samples.T)
-xzm = samples - torch.matmul(smean.reshape(NLabels,1),torch.ones((1,NSamples),dtype = torch.double)).T
+xzm = samples - torch.matmul(smean.reshape(NFeatures,1),torch.ones((1,NSamples))).T
 #get eigenvectors / principal component directions
 eig_vals,eig_vecs = torch.linalg.eigh(scov)
 
@@ -90,36 +76,28 @@ eig_vecs_sorted = eig_vecs[:,torch.argsort(eig_vals,descending = True)]
 #apply transformation to align principal components with axes
 y = torch.matmul((eig_vecs_sorted[:,(0,1,2)]).T,xzm.T).T
 
-#visualise: 7 to 11 shapes is too much to show clearly
-#split into many graphs using color to showcase different aspects
-
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
-colorlist = ['k','tab:brown','tab:olive','tab:purple','tab:blue','tab:cyan',
-                'tab:green','tab:orange','tab:red','tab:pink','tab:gray']
+colorlist = ['tab:purple','tab:blue','tab:cyan',
+                'tab:green','tab:orange','tab:red']
 cmap = LinearSegmentedColormap.from_list('cmap1', colorlist)
 
-colorLabels = ['k','tab:brown','tab:olive','tab:purple','tab:blue','tab:cyan',
-                'tab:green','tab:orange','tab:red','tab:pink','tab:gray']
-l1=ax.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = trueClassLabels/NLabels, cmap = cmap, alpha = 0.3)#,c = data1[:,4],label='Label = 1',cmap='Set1',vmin=1,vmax=3)
-ax.set_title("PCA (3 components) with true label colors")
+l1=ax.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = trueLabels/NLabels, cmap = cmap, alpha = 0.3)
+ax.set_title("PCA (3 components) with true label colors for Human Activity")
 
 fig2 = plt.figure()
 ax2 = fig2.add_subplot(projection='3d')
-l1b=ax2.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = Decisions/NLabels, cmap = cmap, alpha = 0.3)#,c = data1[:,4],label='Label = 1',cmap='Set1',vmin=1,vmax=3)
-ax2.set_title("PCA (3 components) with classifier decision colors")
+l1b=ax2.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = Decisions/NLabels, cmap = cmap, alpha = 0.3)
+ax2.set_title("PCA (3 components) with classifier decision colors for Human Activity")
 
 #separate figure for marker legend
 fig3,ax3 = plt.subplots()
+labelNames = ['WALKING','WALKING_UPSTAIRS','WALKING_DOWNSTAIRS','SITTING','STANDING','LAYING']
 legend_elements = []
 for l in range(NLabels):
-    legend_elements.append(plt.scatter([0], [0], marker='o',alpha=0.3,color=colorlist[l], label='Label '+str(l)))           
+    legend_elements.append(plt.scatter([0], [0], marker='o',alpha=0.3,color=colorlist[l], label=str(l+1)+' '+labelNames[l]))           
 ax3.set_title("Label Colors")
 ax3.legend(handles=legend_elements,loc='center',title="Label Colors",framealpha = 1)
 
-
-#6 2d graphs in subplots to show full data along feature axes
-plotSamples2D(samples,FeatureNames,trueClassLabels/NLabels,cmap,2,3,"True Class Labels")
-plotSamples2D(samples,FeatureNames,Decisions/NLabels,cmap,2,3,"Classifier Decisions")
 plt.show()
 

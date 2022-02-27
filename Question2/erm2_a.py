@@ -28,11 +28,13 @@ def runPartA(lossMatrix,title1,title2):
     pL1 = 0.3
     pL2 = 0.3
     pL3 = 0.4
-    #p(x) can be factored out as a constant 
-    #and ignored since it doesn't affect the relative order of the computed risks
-    pL1givenx = pxgivenL1 * pL1 # / p(x)
-    pL2givenx = pxgivenL2 * pL2 # / p(x)
-    pL3givenx = pxgivenL3 * pL3 # / p(x)
+    #p(x) can usually be factored out as a constant 
+    #but we need to estimate minimum expected risk in this problem
+    #so it's necessary to have the real class posteriors instead of something proportional
+    px = pxgivenL1*pL1+pxgivenL2*pL2+pxgivenL3*pL3
+    pL1givenx = pxgivenL1 * pL1 / px
+    pL2givenx = pxgivenL2 * pL2 / px
+    pL3givenx = pxgivenL3 * pL3 / px
 
     #3xN matrix, each col represents probabilities for one sample
     P = np.stack((pL1givenx,pL2givenx,pL3givenx))

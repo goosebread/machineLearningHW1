@@ -79,7 +79,7 @@ print("P(error) = "+str(pError))
 
 smean = torch.mean(samples,dim=0)
 scov = torch.cov(samples.T)
-xzm = samples - torch.matmul(smean.reshape(NLabels,1),torch.ones((1,NSamples),dtype = torch.double)).T
+xzm = samples - torch.matmul(smean.reshape(NFeatures,1),torch.ones((1,NSamples),dtype = torch.double)).T
 #get eigenvectors / principal component directions
 eig_vals,eig_vecs = torch.linalg.eigh(scov)
 
@@ -99,15 +99,13 @@ colorlist = ['k','tab:brown','tab:olive','tab:purple','tab:blue','tab:cyan',
                 'tab:green','tab:orange','tab:red','tab:pink','tab:gray']
 cmap = LinearSegmentedColormap.from_list('cmap1', colorlist)
 
-colorLabels = ['k','tab:brown','tab:olive','tab:purple','tab:blue','tab:cyan',
-                'tab:green','tab:orange','tab:red','tab:pink','tab:gray']
-l1=ax.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = trueClassLabels/NLabels, cmap = cmap, alpha = 0.3)#,c = data1[:,4],label='Label = 1',cmap='Set1',vmin=1,vmax=3)
-ax.set_title("PCA (3 components) with true label colors")
+l1=ax.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = trueClassLabels/NLabels, cmap = cmap, alpha = 0.3)
+ax.set_title("PCA (3 components) with true label colors for Wine Quality")
 
 fig2 = plt.figure()
 ax2 = fig2.add_subplot(projection='3d')
-l1b=ax2.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = Decisions/NLabels, cmap = cmap, alpha = 0.3)#,c = data1[:,4],label='Label = 1',cmap='Set1',vmin=1,vmax=3)
-ax2.set_title("PCA (3 components) with classifier decision colors")
+l1b=ax2.scatter(y[:,0],y[:,1],zs=y[:,2],marker = 'o',c = Decisions/NLabels, cmap = cmap, alpha = 0.3)
+ax2.set_title("PCA (3 components) with classifier decision colors for Wine Quality")
 
 #separate figure for marker legend
 fig3,ax3 = plt.subplots()
